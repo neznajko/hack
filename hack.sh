@@ -1,8 +1,9 @@
 #!/bin/bash
-# - Bgr to Fgr gradient
-# - figure out SetFgrHSV with saturation 100
-# - Backslash az text
-# - undo
+# - there are some issues with Undo the color is changed
+#   and not updated at Color tab 
+# - draw line
+# - move to drawing mode
+# - publish
 ########################################################
 # SGR(Select Graphic Rendition) parameters ########### #
 Aoff=0  # All attributes are off                       #
@@ -40,6 +41,7 @@ SetSGR()
 {
     local IFS=';'
     printf -v SGR "$*"
+    DumpIndicator
 }
 # Pixel ############################################## #
 # - an element of an array Picture (pix + el) %%%%%%%% #
@@ -111,13 +113,14 @@ SizeX= # --------------------------------------------- #
 SizeY= # ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; #
 Size= # wow! +++++++++++++++++++++++++++++++++++++++++ #
 ORIG= #Colour tab origin `'-._.-'`'-._.-'`'-._.-'`'-._.-
+TABH=9 #T    A    B           H    E    I    G    H    T 
 TABW=10 #Tab width :.:.:..:::: ....::.::.:.:::::...:..::
 SetSizes() #                  :
 {
     RulerW=$(( Cols/2 )) ############      #############
     RulerH=$(( Lines - 1)) ##########      #############
     SizeX=$(( RulerW - 1 )) ######### wow! #############
-    SizeY=$(( RulerH - 1)) ##########      #############
+    SizeY=$(( RulerH - 1 )) #########      #############
     Size=$(( SizeX*SizeY )) #########      #############
     ORIG=($((SizeX - TABW)) $((TABW + 1))) ######## 3000
 }
@@ -170,11 +173,23 @@ DrawGuide()
 }
 ########################################################
 declare -a Pix # ))))))))))))))))))))))))))))))))))))) #
-GetPixelIndex()
-{
+UndoStk=() # Undo Stack #`'.__#`'.__#`'.__#`'.__#`'.__#`
+UndoPtr=0 # Undo Stack Pointer V/\V/\V/\V/\V/\V/\V/\V/\V
+GetPixelIndex() # ^` ^` ^` ^` ^` ^` ^` ^` ^` ^` ^` ^` ^`
+{                    
     local jx=$((Pixel[0] - 1))
     local jy=$((Pixel[1] - 1))
     printf -v $1 "%d" $((jx + SizeX*jy))
+}
+UndoPush()                   #       ,*.              ,*
+{                            #========Y=#=A=H=!=========
+    UndoStk[${UndoPtr}]="$1" #   ,*.  `.  `.      ,*.  `
+    ((UndoPtr++))            # ,*.  `.  `.  `.  ,*.  `.
+}                            #*   `   `   `   `*   `   `
+UndoClear()
+{
+    UndoStk=() #_`.^.`.^.`.^.`.^,`.^.`.^.`.^.`.^.`.^.`.^
+    UndoPtr=0  #9 0 0 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 
 }
 Update=1 # Update pixel information ]]]]]]]]]]]]]]]]]]]l
 Draw()
@@ -189,22 +204,23 @@ Draw()
     local j
     if ((Update)); then #           
 	GetPixelIndex j
+	UndoPush "$1;$2;${Pix[j]}"
 	Pix[j]="$BgrClr;$FgrClr;$SGR;$Text;1"        
     fi                                            #   
-} ###############^################################a#####
-Backup()         #       .                         
-{                #                   . 
-    Push $BgrClr #        .         .           
-    Push $FgrClr #                               e    
-    Push "$Text" #       .           
-    Push $SGR    # ______ __________.___________y  _____
-}                #
-ReEstablish() #^#$######################################
-{              # -Your-poem-goes-here:-----------------
-    Pop SGR    # --------------------------------------
-    Pop Text   # --------------------------------------
-    Pop FgrClr # --------------------------------------
-    Pop BgrClr # --------------------------------------
+} #################^##############################a#####
+Backup()           #     .                         
+{                  #                 . 
+    Push "$BgrClr" #      .         .           
+    Push "$FgrClr" #                             e    
+    Push "$Text"   #       .           
+    Push "$SGR"    # ______ __________.___________y  ___
+}                  #
+ReEstablish() #^###$####################################
+{              # -Your-poem-goes-here:------------------
+    Pop SGR    # ---------------------------------------
+    Pop Text   # ---------------------------------------
+    Pop FgrClr # ---------------------------------------
+    Pop BgrClr # ---------------------------------------
 } ##########@##$########################################
 DrawFrame() # i                i        i    i  i i neka
 {           #
@@ -232,7 +248,7 @@ DrawFrame() # i                i        i    i  i i neka
     done ##############*################################
     BgrClr=$Violet     #                               #
     FgrClr=$Magenta    #                               # 
-    SetSGR $Bold $Blnk #                               #
+    SGR="$Bold;$Blnk"  #                               #
     Text='oo'          #                               #
     ####################################################
     Draw $SizeX $SizeY #                               #
@@ -249,19 +265,21 @@ prompt()
     Cursor=(1 $Lines)  #          _  _      _          #     
     BgrClr=$Violet     #          _|| |.|_||_          #
     FgrClr=$Magenta    #         |_ |_|.  | _|         # 
-    SetSGR $Bold $Blnk #                               #
+    SGR="$Bold;$Blnk"  #                               #
     Text=$PS3          #                               #
     Display            #                               #  
     printf "${CSI}K" ##^#####clear#############line####^
     ReEstablish        #                               #
 }
+# probably here have to use set methods and discard
+# dumpcolour from colour
 Reset()
 {
-    FgrClr=$White ##### # #   #   # # # #################
-    BgrClr=$Black ##### # # # ### # # # #################
-    SGR=$Norm #########   #   #   #   # #################
-    Text=$Void ######## ### ### # # # ###################
-    Flag=0 ############   #   #   # # # #################
+    SetBgrRGB 0 0 0 ########### # #   #   # # # ########
+    SetFgrRGB 255 255 255 ##### # # # ### # # # ########
+    SetText "$Void" ###########   #   #   #   # ########
+    SetSGR $Norm ############## ### ### # # # ##########
+    Flag=0 ####################   #   #   # # # ########
 }
 ResetPixels()
 {
@@ -276,19 +294,15 @@ Init()
     ResetPixels #,*<7EBVA0 hI`}5!HY'>h-'%cFXog(h@,rP6LcH
     DrawFrame #>>t3d-l+8_-$]`{K\[30[Wv<M~xNEba<3\,uIoGle
     Hue 240 #I+z:ml(4*R`j,)9D>HdEn,Z."<m s1f?\BUFhj/^vcx
+    Tab #A|?2O@^,^Qs?%{ xau2"%r:*y%[=_[hu &kS|HF7{Uj@;T(
     Reset #wI;U{AJ}]QM|>qgZ-c8-*co}0= #x>YIY;VE5a4!c5wv^
-    Colour #A|?2O@^,^Qs?%{ xau2"%r:*y%[=_[hu &kS|HF7{Uj@
     prompt #xm2dCan`m-kpu}k"])k3uV4BQJ%8#i<./XKwxFf\xwQv
     Setting=$(stty -g) #0WRUk)gQz9?m/NYN03\]'L6 GRw"~bIh
     stty -echo #|"VuQSx$[\Zn>vKD,lL8A2)3USMY@4$%PsP#[blR
 }
 zebug()
 {
-    printf "${CSI}s" ############## save cursor position
-    printf "${CSI}1;1H" ##### position the cursor at 1,1
-    printf "${CSI}K" ######################## clear line
-    printf "%s" "$*" ############################## dump
-    printf "${CSI}u" ########### restore cursor position
+    printf "%s\n" "$*" >> hack.log #### tail -f hack.log
 }
 Up="[A"
 Down="[B"
@@ -411,8 +425,7 @@ CommandMode()
 		printf "${CSI}${Lines};$((poz[1] - 1))H"
 		;;
 	    $F2)
-		zebug "F2"
-#		PlayingMode
+		PlayingMode
 		;;
 	    $F3)
 		zebug "F3"
@@ -436,6 +449,7 @@ baz()
 ##this##is#something##like#####main##function##:)#######
 {
     Init #######################wow######!##############
+    UndoClear # YYARUM ################################# 
     CommandMode ########### Mike Posner - Cooler Than Me
 }
 FileName="hack.pix" ####################### default file
@@ -447,7 +461,6 @@ Save()
     printf "%i %i\n" $Lines $Cols > $FileName #---`,'.=-
     printf "%s\n" $BgrClr >> $FileName #`', ,'`', ,'`',
     printf "%s\n" $FgrClr >> $FileName #*  '   . ' *   '
-    printf "%s\n" "$Text" >> $FileName #   ' *   '     '
     printf "%s\n" $SGR >> $FileName #    . '     '   * '
     for ((j = 0; j < Size; j++)); do #_____'_____'_____' 
 	printf "%s\n" "${Pix[j]}" #========"====="====="
@@ -466,7 +479,7 @@ Unpack()
 {
     local f=() ################################### field
     local IFS=';' ###################### field separator
-    read -a f <<< "$1" # this is faster than awk and sed
+    read -r -a f <<< "$1" # this is faster than awk and sed
     BgrClr="${f[0]};${f[1]};${f[2]}" # background //////
     FgrClr="${f[3]};${f[4]};${f[5]}" # foreground ++++++
     SGR="${f[6]}" # ЧНГ :)))))))))))))))))))))))))))))))
@@ -487,17 +500,15 @@ Load()
     exec 3<> $FileName ############ open file descriptor
     read -u 3 Lines Cols # read geometry ---------------
     read -u 3 BgrClr #_
-    read -u 3 FgrClr ##_        .*``*.
-    read -u 3 Text #####_      '      '
-    read -u 3 SGR #######_     `,    ,`
-    Backup ###############_      `''`
+    read -u 3 FgrClr ##_ 
+    Text=$Void #########_
+    read -u 3 SGR #######_ ,    ,    ,    ,    ,    ,
+    Backup ###############_ `''` `''` `''` `''` `''` `''
     printf "${CSI}8;${Lines};${Cols}t" ########## Resize
     ResetPixels #
     SetSizes # update size variables +++++++++++++++++++
     DrawFrame # re-draw frame ;;;;;;;;;;;;;;;;;;;;;;;;;;
-    Colour #
-    prompt # and prompt ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-    while read -u 3 line; do
+    while read -r -u 3 line; do
 	Unpack "$line" # ELDERA ALLURE `,`,`,`,`,`,`,`,`
 	if ((Flag)); then
 	    GetPixelCoors $i # yeah! <<<<<<<<<<<<<<<<<<<
@@ -505,7 +516,13 @@ Load()
 	fi
 	((i++)) # click next +++++++++++++++++++++++++++
     done
-    ReEstablish #
+    ReEstablish #    _   _   _ _ _   _ _ _   _   _   _
+    Tab #           | | | | |  _  | |_ _  | | | | | | | 
+    DumpColour 0 #  | |_| | | |_| |  _ _| | | |_| | | | 
+    DumpColour 1 #  |_ _  | |  _ _| |  _  | |  _  | |_| 
+    DumpGradient #   _ _| | | |_ _  | |_| | | | | |  _  
+    DumpIndicator # |_ _ _| |_ _ _| |_ _ _| |_| |_| |_|  
+    prompt # and prompt ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
     exec 3>&- #################### close file descriptor
 }
 GetPixel()
@@ -517,6 +534,8 @@ GetPixel()
     Unpack "${Pix[j]}" #################### Full Version
     DumpColour 0 #S':"\                    SUBSCRIBE 11K
     DumpColour 1 # 3,785 Comments ______________________
+    DumpGradient ##  . . . . . . . . . . . . . . . . . .
+    DumpIndicator # .^.^.^.^.^.^.^.^.^.^.^.^.^.^.^.^.^.^
 }
 #============================================= shortcuts
 sb()
@@ -545,48 +564,99 @@ gf() #     '       '       '       '       '       '
 }
 d() 
 { #                                                 MOPE
+    UndoClear #   ,   `                * .             .
     Draw $@ #.,_,.-*`'-.,_,.-*`'-.,_,.-*`'-.,_,.-*`'-.,_
 }
-t() #              ||||||||||||||||||||||||__|||||||||||
+t() #              ||||||||||||||||||||||||| //////////_
 { #                |||||||||||||||||||||||||||||||||||||
     SetText "$@" # ||||||||||||||||||||||||||||||||||||\
 }
-                 # # # # # # # * # # * # # # # # # # # #
-SetText()       # # # # # # * # # * # # # # # # # # # # 
-{ #            # # # # # # # # * # # * # # # # # # # # 
-    Text="$@" # # # # # # # * # # * # # # # # # # # #  
-} #                            *
-SetBgrHSV() #               *
-{ #                                  *
+gr()
+{
+    UndoClear # This is like a Public method >>>>>>>>>>>
+    Gradient $@ ## hack.sh Shell-script[bash] Git:master
+}
+e()
+{
+    UndoClear #`. `. `. `. `. `. `. `. `. `. `. `. `. `.
+    Eraser $@ #`. `. `. `. `. `. `. `. `. `. `. `. `. `. 
+}
+b()
+{
+    UndoClear #*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*
+    Box $@    #`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`.*,`
+}
+c() {
+    UndoClear # U u p k                                #
+    Circ $@   #  `                         O|O u a c k o 
+}
+                 # # # # # # # # # # # # # # # # # # #
+SetText()       # # # # # # # # # # # # # # # # # # # 
+{              # # # # # # # # # # # # # # # # # # # 
+    Text="$@"   # # # # # # # # # # # # # # # # # # #
+    DumpIndicator  # # # # # # # # # # # # # # # # # # 
+}
+###############################|########################
+BgrBak=                        # Background color backup
+FgrBak=                        # Foreground color backup
+UndoBgr() {                    #
+    local tmp=$BgrClr          # 
+    BgrClr=$BgrBak             # 
+    BgrBak=$tmp                # 
+    DumpColour 0               #
+    DumpGradient               #
+    DumpIndicator              #
+}                              #
+UndoFgr() {                    #
+    local tmp=$FgrClr          #
+    FgrClr=$FgrBak             #           
+    FgrBak=$tmp                #          
+    DumpColour 1               #          +---+
+    DumpGradient               #          |o_o|
+    DumpIndicator              #          +---+
+}                              #   
+SetBgrHSV()                    #                       _
+{                              #                 3gpaBeu
+    BgrBak=$BgrClr # 1-D art ._l-*`(-)_o-*==_0ls93-1203>
     BgrClr=$(rgb/HSV2RGB $1 $2 $3) # ,//'\\,//'\\,//'\\,
-
-    DumpColour 0 # .\\\*///.\\\*///.\\\*///.\\\*///.\\\*
-}
-SetFgrHSV()
-{
-    FgrClr=$(rgb/HSV2RGB $1 $2 $3) #|||| ||| ||| |||||||
-    #                                       |
-    DumpColour 1 #...................... .......|....... 
-} #                                     |       .
-SetBgrRGB()                                    
-{ #                                                                
+    DumpColour 0  #.\\\*///.\\\*///.\\\*///.\\\*///.\\\*
+    DumpGradient  #/.\\*//.\\*//.\\*//.\\*//.\\*//.\\*//
+    DumpIndicator #
+}                 #                  
+SetFgrHSV()       #
+{                 #
+    FgrBak=$FgrClr #o`O'o,o`O'o,o`O'o,o`O'o,o`O'o,o`O'o,
+    FgrClr=$(rgb/HSV2RGB $1 $2 $3) #||||||||||||||||||||
+    DumpColour 1  #..................................... 
+    DumpGradient  #.....................................
+    DumpIndicator #
+}                 #                                     
+SetBgrRGB()       #
+{                 #
+    BgrBak=$BgrClr #
     BgrClr="$1;$2;$3" #                 '
-
-    DumpColour 0 ############### Add a public comment...
-}                                       
-SetFgrRGB()                 
-{
+    DumpColour 0  ############## Add a public comment...
+    DumpGradient  #
+    DumpIndicator #
+}                 #                      
+SetFgrRGB()       #          
+{                 # 
+    FgrBak=$FgrClr #        
     FgrClr="$1;$2;$3" ################### very good song
-                             
-    DumpColour 1 ############################# thumbs up
-}
-GetPixelColour()
-{
+    DumpColour 1  ############################ thumbs up
+    DumpGradient  #
+    DumpIndicator #
+}                 # 
+GetPixelColour()  #
+{                 #
     local IFS=';' #### The Internal Field Separator ####
     local j ######################################### OK
     local f #===========================================
     local mode=$3 #...... 0 - background, 1 - foreground
-
+    #***************************************************
+    BgrBak=$BgrClr #        
+    FgrBak=$FgrClr #
+    #***************************************************
     Pixel=($1 $2) # ^.   .^.   .^.   .^.   .^.   .^.   .
     GetPixelIndex j # `.`   `.`   `.`   `.`   `.`   `.`
     read -a f <<< "${Pix[j]}"
@@ -596,6 +666,8 @@ GetPixelColour()
 	BgrClr="${f[0]};${f[1]};${f[2]}" #.`.`.`.`.`.`.`
     fi                    #`.`.`.`.`.`.`.`.`.`.`.`.`.`.`
     IFS= DumpColour $mode #`.`.`.`.`.`.`.`.`.`.`.`.`.`.`
+    DumpGradient          #`.`.`.`.`.`.`.`.`.`.`.`.`.`.`
+    DumpIndicator         #`.`.`.`.`.`.`.`.`.`.`.`.`.`.`
 }
 GetBgr()
 {
@@ -697,7 +769,8 @@ DumpColour() ###########################################
     Display         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ((Cursor[1]--)) # .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
     BgrClr=$Black   # !!!!!!!!!!!!!!!!!!?!!!!!!!!!!!!!!!
-    SetSGR $Bold    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #    SetSGR $Bold    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    SGR=$Bold
     ################@###################################
     for ((j = 0; j < ${#clr[@]}; j++)); do #############
 	FgrClr=${clr[j]} #               do ############
@@ -712,10 +785,21 @@ DumpColour() ###########################################
     done ######@########################################
     ReEstablish # __________ ___________________________
 } #                         _
-Colour()
-# Display colour information ~ ! @ # $ % ^ & * ( ) _ + = 
+DumpIndicator()
 {
-    local TABH=7 #T #A #B #_ #H #E #I #G #H #T #_ #_ #_
+    local x=$(( ORIG[0] + 1 ))
+    local y=$(( ORIG[1] + TABH - 2))
+    Draw $x $y    
+}
+DumpGradient()
+{
+    local x=$(( ORIG[0] + 3 ))
+    local y=$(( ORIG[1] + TABH - 2))
+    Gradient $x $y $((x + 5)) $y
+}
+Tab()
+# Display colour information Tab ~ ! @ # $ % ^ & * ( ) _ + = 
+{
     local x=$(( ORIG[0] + TABW - 1 )) #`'-_-'`'-_-'`'-_-
     local y=$(( ORIG[1] + TABH - 1 )) #   _     _     _
     Backup                            #   _     _     _
@@ -726,10 +810,7 @@ Colour()
     Update=0 ##################                    what!
     Box ${ORIG[@]} $x $y Draw #                     Bo><
     Pop Update ################                ~
-    ReEstablish ###############                                      
-    ########################################### ########
-    DumpColour 0 ##############               b~ckground
-    DumpColour 1 ##############               F~REGROUND
+    ReEstablish ###############                ~
 }
 Eraser()
 # wow! what is this? ...................................
@@ -740,6 +821,7 @@ Eraser()
     printf "${CSI}2X" ##################################
     local j ############################################
     GetPixelIndex j ####################################
+    UndoPush "$1;$2;${Pix[j]}" #########################
     Pix[j]="$Black;$White;$Norm;az;0" ##################
 }
 Switch()
@@ -750,8 +832,16 @@ Switch()
     BgrClr=$t ########################### New Year's Day ...
     DumpColour 0 # C1: )`
     DumpColour 1 #                         :! HqMA BPEME
+    DumpGradient #
+    DumpIndicator #
 }
 Gradient()
+# here it's possible, if Bgr and Fgr colors are close
+# enough and distance is relativly big, epsilon to
+# become zero than the Gradient will fill selected area
+# with Bgr. Zo in this case one have to find the maximum
+# n for which epsilon > 0 and fill remaining space with
+# Fgr (for now manualy). Alzo x,y[0] should be < x,y[1].
 {
     local x=($1 $3) # x - coors `^'"*"'^`^'"*"'^`^'"*"'^
     local y=($2 $4) # y - coors <~=-+>+-=~<~=-+>+-=~<~=-
@@ -771,117 +861,152 @@ Gradient()
     local fgr # foreground colour  _     _     _     _
     read -a bgr <<< $BgrClr # k Ck Ok    _     _     _
     read -a fgr <<< $FgrClr # CK : Dart Vader  _     _
-    local i #
-    local clr=() #
-    for ((i = 0; i < dim; i++)); do #
-	e[i]=$(( (fgr[i] - bgr[i])/(n - 1) )) #
-    done #
-    for ((j = 0; j < n; j++ )) do #
-	for ((i = 0; i < dim; i++)); do #
-	    clr[i]=$((bgr[i] + e[i]*j)) #
-	done #
-	echo "${clr[*]}" 
-    done #
+    local i #    _     _     _     _     _     _     _
+    local clr=() #     _     _     _     _     _     _
+    local r1 #   _     _     _     _     _     _     _
+    local r2 #   _     _     _     _     _     _     _
+    Push "$BgrClr" #   _     _     _     _     _     _
+    Push "$Text" #     _     _     _     _     _     _
+    Text=$Void # _     _     _     _     _     _     _
+    for ((i = 0; i < dim; i++)); do #    _     _     _
+	e[i]=$(( (fgr[i] - bgr[i])/(n - 1) )) #_     _
+    done # _     _     _     _     _     _     _     _
+    for ((j = 0; j < n; j++ )); do #     _     _     _
+	for ((i = 0; i < dim; i++)); do #_     _     _
+	    clr[i]=$((bgr[i] + e[i]*j)) #_     _     _
+	done #   _     _     _     _     _     _     _
+	printf -v BgrClr "${clr[*]}" #   _     _     _
+	if [ -z $dir ]; then #     _     _     _     _
+	    r1=($((x[0] + j)) ${y[0]}) # _     _     _
+	    r2=($((x[0] + j)) ${y[1]}) # _     _     _
+	else #   _     _     _     _     _     _     _
+	    r1=(${x[0]} $((y[0] + j))) # _     _     _
+	    r2=(${x[1]} $((y[0] + j))) # _     _     _
+	fi #     _     _     _     _     _     _     _
+	Box ${r1[@]} ${r2[@]} Draw #     _     _     _
+    done # _     _     _     _     _     _     _     _
+    Pop Text #   _     _     _     _     _     _     _
+    Pop BgrClr # _     _     _     _     _     _     _
 }
-#SemiAxis()
-## $1 - bounding square lower coor ----------------------
-## $2 - bounding square higher coor >>>>>>>>>>>>>>>>>>>>>
-#{
-#    echo "($2-($1)+1)/2" | bc -l
-#}
-#InCirc()
-## $1, $2 - bounding square top left coors $$$$$$$$$$$$$$
-## $3, $4 - pixel coors )))))))))))))))))))))))))))))))))
-## $5, $6 - a and b semi axes ___________________________
-#{
-#    echo -e "define incirc(u, v, i, j, a, b) \n" \
-#	 "{                               \n" \
-#	 "    x = i - u + .5              \n" \
-#	 "    y = j - v + .5              \n" \
-#	 "    e = (x/a-1)^2+(y/b-1)^2     \n" \
-#	 "                                \n" \
-#	 "    if (e < 1) {                \n" \
-#	 "        return 1                \n" \
-#	 "    }                           \n" \
-#	 "    return 0                    \n" \
-#	 "}                               \n" \
-#	 "incirc($1, $2, $3, $4, $5, $6)  \n" | bc -l
-#}
-#Circ()
-## ($1, $2) - bounding box top left corner %%%%%%%%%%%%%%
-## ($3, $4) - bounding box bottom right corner ``````````
-#{
-#    local x=($1 $3) ############################ x coors
-#    local y=($2 $4) ############################ y coors
-#    local u=${x[0]} ##################### top left coors
-#    local v=${y[0]} ############################## yeah!
-#    local i ################################# loop index 
-#    local j ################################# loop index
-#    local a=$(SemiAxis ${x[@]}) ############ a semi axis
-#    local b=$(SemiAxis ${y[@]}) ############ b semi axis
-#    for ((j = y[0]; j <= y[1]; j++)); do
-#	if (( j < 1 || j > SizeY )); then
-#	    continue
-#	fi		
-#	for ((i = x[0]; i <= x[1]; i++)); do
-#	    if (( i < 1 || i > SizeX )); then
-#		continue
-#	    fi		
-#	    if [ $(InCirc $u $v $i $j $a $b) -eq 1 ]
-#	    then
-#		Draw $i $j ####################### yeah!
-#	    fi
-#	done
-#    done
-#}
-#IsArrow()
-#{
-#    case "$1" in
-#	$Up|$Down|$Right|$Left) printf 1 ;; ############
-#	*) printf 0 ;; #################################
-#    esac
-#}
-#GetCoorz()
-###Get#Cursor#and#Pixel#coors############################
-#{
-#    local poz=() ############################## position
-#    printf "${CSI}6n" ### request cursor position report
-#    IFS=';' read -d R -a poz ########### read the report
-#    Cursor=(${poz[1]} ${poz[0]:2}) ######## Cursor coorz
-#    Cursor2Pixel ############ update Pixel coorz az well
-#}
-#PlayingMode()
-#{
-#    local ch ################################# character
-#    local Space=' ' ########################## space bar
-#    local poz=(2 $((2*SizeX-1))) ########## Tab position
-#    while IFS= read -s -n 1 ch; do ################## oo
-#	case $ch in
-#	    $Esc)
-#		########################### arrow keys ?
-#		read -s -n 2 ch ;;	                       
-#	    $Space) #-----------------------draw-a-pixel
-#		GetCoorz ########################## wow!
-#		Draw ${Pixel[@]} ######### what is this?
-#		;;
-#	    'g') #==================get=pixel=color=etc.
-#		GetCoorz ######################### yeah!
-#		GetPixel ${Pixel[@]} #### get pixel data
-#		;;
-#	    $'\t') #______________switch_pixel_positions
-#		GetCoorz ####################### so cool
-#		printf "${CSI}${poz[0]};${poz[1]}H"
-#		poz=(${Cursor[1]} ${Cursor[0]})
-#		;;
-#	esac
-#	if [[ $ch == $F1 ]]; then
-#	    prompt #### Kiesza-Hideaway (Official Video)
-#	    CommandMode ########################## yeah!
-#	elif (( $(IsArrow $ch) )); then
-#	    printf $Esc$ch ##################### come on
-#	fi
-#    done
-#}
+Undo()
+{
+    local f #    \ \       \ \\            \        \\
+    UndoPtr=0 #   \ \       \ \\            \        \\
+    local IFS=";" #\ \       \ \\            \        \\
+    local n=${#UndoStk[@]} #  \ \\            \        \
+    while ((UndoPtr < n)); do #\ \\            \
+	read -a f <<< "${UndoStk[UndoPtr]}" #   \
+	Unpack "${f[*]:2}" #     \ \\            \
+	if ((Flag)); then #       \ \\            \
+	    Draw "${f[@]:0:2}" # UndoPtr iz updated here
+	else #            \ \       \ \\            \
+	    Eraser "${f[@]:0:2}" #   \ \\            \
+	fi #                \ \       \ \\            \
+    done #                   \ \       \ \\            \          
+}
+########################################################
+SemiAxis()
+# $1 - bounding square lower coor ----------------------
+# $2 - bounding square higher coor >>>>>>>>>>>>>>>>>>>>>
+{
+    echo "($2-($1)+1)/2" | bc -l
+}
+InCirc()
+# $1, $2 - bounding square top left coors $$$$$$$$$$$$$$
+# $3, $4 - pixel coors )))))))))))))))))))))))))))))))))
+# $5, $6 - a and b semi axes ___________________________
+{
+    echo -e "define incirc(u, v, i, j, a, b) \n" \
+	 "{                               \n" \
+	 "    x = i - u + .5              \n" \
+	 "    y = j - v + .5              \n" \
+	 "    e = (x/a-1)^2+(y/b-1)^2     \n" \
+	 "                                \n" \
+	 "    if (e < 1) {                \n" \
+	 "        return 1                \n" \
+	 "    }                           \n" \
+	 "    return 0                    \n" \
+	 "}                               \n" \
+	 "incirc($1, $2, $3, $4, $5, $6)  \n" | bc -l
+}
+Circ()
+# ($1, $2) - bounding box top left corner %%%%%%%%%%%%%%
+# ($3, $4) - bounding box bottom right corner ``````````
+{
+    local x=($1 $3) ############################ x coors
+    local y=($2 $4) ############################ y coors
+    local u=${x[0]} ##################### top left coors
+    local v=${y[0]} ############################## yeah!
+    local i ################################# loop index 
+    local j ################################# loop index
+    local a=$(SemiAxis ${x[@]}) ############ a semi axis
+    local b=$(SemiAxis ${y[@]}) ############ b semi axis
+    for ((j = y[0]; j <= y[1]; j++)); do
+	if (( j < 1 || j > SizeY )); then
+	    continue
+	fi		
+	for ((i = x[0]; i <= x[1]; i++)); do
+	    if (( i < 1 || i > SizeX )); then
+		continue
+	    fi		
+	    if [ $(InCirc $u $v $i $j $a $b) -eq 1 ]
+	    then
+		Draw $i $j ####################### yeah!
+	    fi
+	done
+    done
+}
+IsArrow()
+{
+    case "$1" in
+	$Up|$Down|$Right|$Left) printf 1 ;; ############
+	*) printf 0 ;; #################################
+    esac
+}
+GetCoorz()
+##Get#Cursor#and#Pixel#coors############################
+{
+    local poz=() ############################## position
+    printf "${CSI}6n" ### request cursor position report
+    IFS=';' read -d R -a poz ########### read the report
+    Cursor=(${poz[1]} ${poz[0]:2}) ######## Cursor coorz
+    Cursor2Pixel ############ update Pixel coorz az well
+}
+PlayingMode()
+{
+    local ch ################################# character
+    local Space=' ' ########################## space bar
+    local poz=(2 $((2*SizeX - 1))) ######## Hue position
+    local po2= ########################### backup buffer
+    while IFS= read -s -n 1 ch; do ################## oo
+	case $ch in
+	    $Esc)
+		############################ arrow keys?
+		read -s -n 2 ch ;;	                       
+	    $Space) #-----------------------draw-a-pixel
+		GetCoorz ########################## wow!
+		Draw ${Pixel[@]} ######### what is this?
+		;;
+	    'g') #==================get=pixel=color=etc.
+		GetCoorz ######################### yeah!
+		po2=(${Cursor[1]} ${Cursor[0]})
+		GetPixel ${Pixel[@]} #### get pixel data
+		printf "${CSI}${po2[0]};${po2[1]}H"
+		;;
+	    $'\t') #______________switch_pixel_positions
+		GetCoorz ####################### so cool
+		printf "${CSI}${poz[0]};${poz[1]}H"
+		poz=(${Cursor[1]} ${Cursor[0]})
+		;;
+	esac
+	if [[ $ch == $F4 ]]; then
+	    prompt #### Kiesza-Hideaway (Official Video)
+	    CommandMode ########################## yeah!
+	elif (( $(IsArrow $ch) )); then
+	    printf $Esc$ch ##################### come on
+	fi
+    done
+}
 #Mode=1000
 #Tracking_On()
 #{
@@ -956,8 +1081,12 @@ quit()
     stty $Setting # restore terminal settings *=*=*=*=*=
     printf "${CSI}8;${Geom[1]};${Geom[0]}t" # reset size
 }
-#trap quit EXIT
-#baz
+trap quit EXIT
+baz
+#SetSizes
+#ResetPixels
+#echo $BgrClr/$FgrClr/"$Text"/$SGR
+#BgrClr=$Green
 ########################################################
 #Init
 #stty -echo
