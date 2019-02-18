@@ -1,7 +1,8 @@
 #!/bin/bash
-# - there are some issues with Undo the color is changed
-#   and not updated at Color tab 
-# - draw line
+# - draw and test
+#   - make x(switch) for playing mode
+#   - set Flag to 0 for gradient and inicator
+# - line
 # - move to drawing mode
 # - publish
 ########################################################
@@ -461,7 +462,8 @@ Save()
     printf "%i %i\n" $Lines $Cols > $FileName #---`,'.=-
     printf "%s\n" $BgrClr >> $FileName #`', ,'`', ,'`',
     printf "%s\n" $FgrClr >> $FileName #*  '   . ' *   '
-    printf "%s\n" $SGR >> $FileName #    . '     '   * '
+    printf "%s\n" "${Text}" >> $FileName # '     '     '
+    printf "%s\n" $SGR >> $FileName #'   . '     '   * '
     for ((j = 0; j < Size; j++)); do #_____'_____'_____' 
 	printf "%s\n" "${Pix[j]}" #========"====="====="
     done >> $FileName #==================== ===== =====+
@@ -499,11 +501,11 @@ Load()
     local i=0 ############################## pixel index
     exec 3<> $FileName ############ open file descriptor
     read -u 3 Lines Cols # read geometry ---------------
-    read -u 3 BgrClr #_
-    read -u 3 FgrClr ##_ 
-    Text=$Void #########_
-    read -u 3 SGR #######_ ,    ,    ,    ,    ,    ,
-    Backup ###############_ `''` `''` `''` `''` `''` `''
+    read -u 3 BgrClr ##_
+    read -u 3 FgrClr ###_
+    IFS= read -u 3 Text #_
+    read -u 3 SGR ########_ ,    ,    ,    ,    ,    ,
+    Backup ################_ `''` `''` `''` `''` `''` `''
     printf "${CSI}8;${Lines};${Cols}t" ########## Resize
     ResetPixels #
     SetSizes # update size variables +++++++++++++++++++
@@ -894,15 +896,17 @@ Undo()
     UndoPtr=0 #   \ \       \ \\            \        \\
     local IFS=";" #\ \       \ \\            \        \\
     local n=${#UndoStk[@]} #  \ \\            \        \
-    while ((UndoPtr < n)); do #\ \\            \
-	read -a f <<< "${UndoStk[UndoPtr]}" #   \
-	Unpack "${f[*]:2}" #     \ \\            \
-	if ((Flag)); then #       \ \\            \
+    Backup #         \ \       \ \\            \   
+    while ((UndoPtr < n)); do # \ \\            \
+	read -a f <<< "${UndoStk[UndoPtr]}" #    \
+	Unpack "${f[*]:2}" #      \ \\            \
+	if ((Flag)); then #        \ \\            \
 	    Draw "${f[@]:0:2}" # UndoPtr iz updated here
-	else #            \ \       \ \\            \
-	    Eraser "${f[@]:0:2}" #   \ \\            \
-	fi #                \ \       \ \\            \
-    done #                   \ \       \ \\            \          
+	else #             \ \       \ \\            \
+	    Eraser "${f[@]:0:2}" #    \ \\            \
+	fi #                 \ \       \ \\            \
+    done #                    \ \       \ \\                      
+    ReEstablish #              \ \       \ \\      
 }
 ########################################################
 SemiAxis()
@@ -1006,6 +1010,43 @@ PlayingMode()
 	    printf $Esc$ch ##################### come on
 	fi
     done
+}
+########################################################
+oacute='ó'
+horse='馬'
+gold='金'
+king='玉'
+rook='飛'
+bishop='角'
+knight='桂'
+pawn='歩'
+ich='一'
+ni='二'
+san='三'
+yon='四'
+go='五'
+roke='六'
+########################################################
+gimp() {
+    local pixel            # yep!
+    local IFS              # field separator
+    local f                # field
+    local orig=(${1} ${2}) # namba wan and namba tuu
+    local x                # 
+    local y                # 
+    Backup                 #
+    Text=${Void}           #
+    UndoClear              #
+    for pixel in $(gimp/dumpix); do
+	IFS=';'
+	read -a f <<< ${pixel}
+	x=$((orig[0] + f[0]))
+	y=$((orig[1] + f[1]))
+	BgrClr="${f[*]:2}"
+	Draw ${x} ${y}
+	IFS=
+    done
+    ReEstablish
 }
 #Mode=1000
 #Tracking_On()
