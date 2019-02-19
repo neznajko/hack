@@ -1,9 +1,6 @@
 #!/bin/bash
-# - draw and test
-#   - make x(switch) for playing mode
-#   - set Flag to 0 for gradient and inicator
-# - line
 # - move to drawing mode
+#   - tab zone
 # - publish
 ########################################################
 # SGR(Select Graphic Rendition) parameters ########### #
@@ -192,7 +189,6 @@ UndoClear()
     UndoStk=() #_`.^.`.^.`.^.`.^,`.^.`.^.`.^.`.^.`.^.`.^
     UndoPtr=0  #9 0 0 0 0 0 0 0 5 0 0 0 0 0 0 0 0 0 0 0 
 }
-Update=1 # Update pixel information ]]]]]]]]]]]]]]]]]]]l
 Draw()
 ## this is like a Display function but the arguments are
 ###### in ruler's units zo we have to convert them first
@@ -203,11 +199,9 @@ Draw()
     Display
     ############################################# update
     local j
-    if ((Update)); then #           
-	GetPixelIndex j
-	UndoPush "$1;$2;${Pix[j]}"
-	Pix[j]="$BgrClr;$FgrClr;$SGR;$Text;1"        
-    fi                                            #   
+    GetPixelIndex j
+    UndoPush "$1;$2;${Pix[j]}"
+    Pix[j]="$BgrClr;$FgrClr;$SGR;$Text;${Flag}"
 } #################^##############################a#####
 Backup()           #     .                         
 {                  #                 . 
@@ -280,7 +274,7 @@ Reset()
     SetFgrRGB 255 255 255 ##### # # # ### # # # ########
     SetText "$Void" ###########   #   #   #   # ########
     SetSGR $Norm ############## ### ### # # # ##########
-    Flag=0 ####################   #   #   # # # ########
+    Flag=1 ####################   #   #   # # # ########
 }
 ResetPixels()
 {
@@ -429,9 +423,8 @@ CommandMode()
 		PlayingMode
 		;;
 	    $F3)
-		zebug "F3"
-#		Tracking_On
-#		DrawingMode
+		Tracking_On
+		DrawingMode
 		;;
 	    *)
 		insert "$ch" $j
@@ -510,6 +503,7 @@ Load()
     ResetPixels #
     SetSizes # update size variables +++++++++++++++++++
     DrawFrame # re-draw frame ;;;;;;;;;;;;;;;;;;;;;;;;;;
+    Hue 240 #
     while read -r -u 3 line; do
 	Unpack "$line" # ELDERA ALLURE `,`,`,`,`,`,`,`,`
 	if ((Flag)); then
@@ -791,13 +785,19 @@ DumpIndicator()
 {
     local x=$(( ORIG[0] + 1 ))
     local y=$(( ORIG[1] + TABH - 2))
-    Draw $x $y    
+    Push ${Flag}
+    Flag=0
+    Draw $x $y
+    Pop Flag
 }
 DumpGradient()
 {
     local x=$(( ORIG[0] + 3 ))
     local y=$(( ORIG[1] + TABH - 2))
+    Push ${Flag}
+    Flag=0
     Gradient $x $y $((x + 5)) $y
+    Pop Flag
 }
 Tab()
 # Display colour information Tab ~ ! @ # $ % ^ & * ( ) _ + = 
@@ -805,13 +805,13 @@ Tab()
     local x=$(( ORIG[0] + TABW - 1 )) #`'-_-'`'-_-'`'-_-
     local y=$(( ORIG[1] + TABH - 1 )) #   _     _     _
     Backup                            #   _     _     _
-    Push $Update                      #   _     _     _
+    Push ${Flag}                      #   _     _     _
     ######################################=#####=#####=#
     Text=$Void ################                ~   clear
     BgrClr=$Black #############                     _-'`
-    Update=0 ##################                    what!
+    Flag=0 ##################                      what!
     Box ${ORIG[@]} $x $y Draw #                     Bo><
-    Pop Update ################                ~
+    Pop Flag ################                  ~
     ReEstablish ###############                ~
 }
 Eraser()
@@ -983,30 +983,37 @@ PlayingMode()
     local poz=(2 $((2*SizeX - 1))) ######## Hue position
     local po2= ########################### backup buffer
     while IFS= read -s -n 1 ch; do ################## oo
-	case $ch in
-	    $Esc)
-		############################ arrow keys?
-		read -s -n 2 ch ;;	                       
-	    $Space) #-----------------------draw-a-pixel
-		GetCoorz ########################## wow!
-		Draw ${Pixel[@]} ######### what is this?
-		;;
-	    'g') #==================get=pixel=color=etc.
-		GetCoorz ######################### yeah!
-		po2=(${Cursor[1]} ${Cursor[0]})
-		GetPixel ${Pixel[@]} #### get pixel data
-		printf "${CSI}${po2[0]};${po2[1]}H"
-		;;
-	    $'\t') #______________switch_pixel_positions
-		GetCoorz ####################### so cool
-		printf "${CSI}${poz[0]};${poz[1]}H"
-		poz=(${Cursor[1]} ${Cursor[0]})
-		;;
-	esac
-	if [[ $ch == $F4 ]]; then
+	if [ "${ch}" = ${Esc} ]; then
+	    read -s -n 2 ch ###### function or arrow key
+	else
+	    GetCoorz ############################## wow!
+	    po2=(${Cursor[1]} ${Cursor[0]})
+	    case $ch in
+		$Space) #-------------------draw-a-pixel
+		    UndoClear
+		    Draw ${Pixel[@]} ##### what is this?
+		    ;;
+		'g') #==============get=pixel=color=etc.
+		    GetPixel ${Pixel[@]} # get pixel data
+		    printf "${CSI}${po2[0]};${po2[1]}H"
+		    ;;
+		$'\t') #__________switch_pixel_positions
+		    printf "${CSI}${poz[0]};${poz[1]}H"
+		    poz=(${Cursor[1]} ${Cursor[0]})
+		    ;;
+		'u')
+		    Undo
+		    ;;
+		'x')
+		    Switch
+		    printf "${CSI}${po2[0]};${po2[1]}H"
+		    ;;
+	    esac
+	fi
+	if [ "${ch}" = ${F4} ]; then
 	    prompt #### Kiesza-Hideaway (Official Video)
 	    CommandMode ########################## yeah!
-	elif (( $(IsArrow $ch) )); then
+	elif (($(IsArrow $ch))); then
 	    printf $Esc$ch ##################### come on
 	fi
     done
@@ -1048,91 +1055,125 @@ gimp() {
     done
     ReEstablish
 }
-#Mode=1000
-#Tracking_On()
-#{
-#    printf "${CSI}?25l" # hide cursor
-#    printf "${CSI}?${Mode}h"
-#}
-#Tracking_Off()
-#{
-#    printf "${CSI}?25h"
-#    printf "${CSI}?${Mode}l"
-#}
-#atoi()
-#{
-#    printf "%c" "$1" | hexdump -e '/1 "%02d"'
-#}
-#########################################################
-############# On button press, xterm(1) sends ESC [ M bxy
-##### (6 characters). Here b is button-1, and x and y are
-#### the x and y coordinates of the mouse when the button
-###### was pressed. This is the same code the kernel also
-############################################### produces.
-#################################### (from console_codes)
-#DrawingMode()
-#{
-#    local ch # >>> THIS IS _NOT_ THE ch REGISTER !!! <<<
-#    local C1
-#    local C2
-#    while :; do
-#	read -n 1 ch ################## probe for an Esc
-#	[ -z "$ch" ] && continue
-#	if [[ $ch == $Esc ]]; then
-#	    read -n 5 ch
-#	    C1=$(atoi "${ch:3:1}")
-#	    if ((C1 < 0)); then 
-#			((C1 += 223))
-#	    else
-#			((C1 -= 32))
-#	    fi
-#	    if ((C1 < 3)) || ((C1 > Cols)); then
-#			continue;
-#	    fi
-#	    C2=$(atoi "${ch:4:1}")
-#	    if ((C2 < 0)); then
-#			((C2 += 223))
-#	    else
-#			((C2 -= 32))
-#	    fi
-#	    if ((C2 < 2)) || ((C2 > Lines-1)); then
-#			continue;
-#	    fi
-#	    Cursor=($C1 $C2)
-#	    Cursor2Pixel
-#	    # ... should set here n=10
-#	    if ((C1 > Cols-22)); then
-#			if ((C2 < 12)); then
-#				GetPixel ${Pixel[@]} # get color
-#				continue
-#			fi
-#	    fi
-#	    if ((C2 == Lines-1)) && ((C1>Cols-2)); then
-#			Tracking_Off
-#			prompt
-#			CommandMode
-#	    fi
-#	    Draw ${Pixel[@]}
-#	fi	
-#    done
-#}
+########################################################
+line() {
+    local xA=${1}
+    local yA=${2}
+    local xB=${3}
+    local yB=${4}
+    local dx=$((xB - xA))
+    local dy=$((yB - yA))
+    local step=1
+    local x=
+    local y=
+    local p=
+    local q=
+    UndoClear
+    Draw ${xA} ${yA}
+    ((xA == xB)) && ((yA == yB)) && return
+    if ((dy*dy < dx*dx)); then
+	((dx < 0)) && step=-1
+	for ((x = xA + step; x != xB; x += step)); do
+	    p=$((yB*(x - xA) - yA*(x - xB)))
+	    q=$((xB - xA))
+	    y=$(((p + q/2)/q)) ################ rounding
+	    Draw ${x} ${y}
+	done
+    else ################################ switch x and y
+	((dy < 0)) && step=-1
+	for ((y = yA + step; y != yB; y += step)); do
+	    p=$((xB*(y - yA) - xA*(y - yB)))
+	    q=$((yB - yA))
+	    x=$(((p + q/2)/q))
+	    Draw ${x} ${y}
+	done
+    fi
+    Draw ${xB} ${yB}
+}
+Mode=1000 # Normal tracking mode
+Tracking_On()
+{
+    printf "${CSI}?25l" # hide cursor
+    printf "${CSI}?${Mode}h"
+}
+Tracking_Off()
+{
+    printf "${CSI}?25h"
+    printf "${CSI}?${Mode}l"
+}
+atoi()
+{
+    printf "%c" "$1" | hexdump -e '/1 "%02d"'
+}
+########################################################
+############ On button press, xterm(1) sends ESC [ M bxy
+#### (6 characters). Here b is button-1, and x and y are
+### the x and y coordinates of the mouse when the button
+##### was pressed. This is the same code the kernel also
+############################################## produces.
+################################### (from console_codes)
+DrawingMode()
+{
+    local ch
+    local Cb
+    local Cx
+    local Cy
+    local A
+    local off=32
+    local minCx=3
+    local maxCx=$((Cols - 2))
+    local minCy=2
+    local maxCy=$((Lines - 1))
+    for ((; ;)); do
+	read -n 1 ch ################## probe for an Esc
+	[ -z "$ch" ] && continue
+	if [ "$ch" = ${Esc} ]; then
+	    read -n 5 ch
+	    Cb=$(($(atoi "${ch:2:1}") - off))
+	    Cx=$(($(atoi "${ch:3:1}") - off))
+	    Cy=$(($(atoi "${ch:4:1}") - off))
+	    ############################################
+	    ((Cx < 0)) && ((Cx += 255))
+	    ((Cy < 0)) && ((Cy += 255))
+	    ############################################
+	    ((Cx < minCx)) && ((Cx = minCx))
+	    ((Cx > maxCx)) && ((Cx = maxCx))
+	    ((Cy < minCy)) && ((Cy = minCy))
+	    ((Cy > maxCy)) && ((Cy = maxCy))
+	    Cursor=($Cx $Cy)
+	    Cursor2Pixel
+	    ############################################
+	    if ((Cx > Cols-22)); then
+		if ((Cy < 12)); then
+		    GetPixel ${Pixel[@]} # get color
+		    continue
+		fi
+	    fi #########################################
+	    if ((Cx == maxCx)) && ((Cy == maxCy)); then
+		Tracking_Off
+		prompt
+		CommandMode
+	    fi #########################################
+	    if ((Cb == 0)); then
+		A=(${Pixel[@]})
+	    elif ((Cb == 3)); then
+		line ${A[@]} ${Pixel[@]}
+	    else
+		continue
+	    fi
+	fi	
+    done
+}
 ############################## !!! test zone !¿! #######
 quit()
 {
     stty $Setting # restore terminal settings *=*=*=*=*=
     printf "${CSI}8;${Geom[1]};${Geom[0]}t" # reset size
+    Tracking_Off
 }
 trap quit EXIT
-baz
-#SetSizes
-#ResetPixels
-#echo $BgrClr/$FgrClr/"$Text"/$SGR
-#BgrClr=$Green
+#baz
 ########################################################
-#Init
-#stty -echo
-#Hue 0
-#Tracking_On
-#BgrClr=$Blue
-#trap Tracking_Off EXIT
-#DrawingMode
+Init
+Tracking_On
+DrawingMode
