@@ -745,8 +745,8 @@ DumpColour() ###########################################
     local rgb=() #  ____________________________________
     local hsv=() #  ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
     local IFS=';' # ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
-    read -a rgb <<< $BgrClr # ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    read -a hsv <<< $(rgb/RGB2HSV ${rgb[@]}) # %%%%%%%%%
+    read -a rgb <<< "${BgrClr}" #^^^^^^^^^^^^^^^^^^^^^^^
+    read -a hsv <<< "$(rgb/RGB2HSV ${rgb[@]})" #%%%%%%%%
     ####################################################
     local clr=() #colour#                             ..
     local drk=() #dark colour#                        oo
@@ -859,8 +859,8 @@ Gradient()
     local IFS=';' # field separator_     _     _     _
     local bgr # background colour  _     _     _     _
     local fgr # foreground colour  _     _     _     _
-    read -a bgr <<< $BgrClr # k Ck Ok    _     _     _
-    read -a fgr <<< $FgrClr # CK .: Dart Vader _     _
+    read -a bgr <<< "${BgrClr}" # k Ck Ok_     _     _
+    read -a fgr <<< "${FgrClr}" # CK .: Dart Vader   _
     local i #    _     _     _     _     _     _     _
     local clr=() #     _     _     _     _     _     _
     local r1 #   _     _     _     _     _     _     _
@@ -1044,7 +1044,7 @@ gimp() {
     UndoClear              #
     for pixel in $(gimp/dumpix); do
 	IFS=';'
-	read -a f <<< ${pixel}
+	read -a f <<< "${pixel}"
 	x=$((orig[0] + f[0]))
 	y=$((orig[1] + f[1]))
 	BgrClr="${f[*]:2}"
