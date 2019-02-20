@@ -1,7 +1,4 @@
 #!/bin/bash
-# - move to drawing mode
-#   - tab zone
-# - publish
 ########################################################
 # SGR(Select Graphic Rendition) parameters ########### #
 Aoff=0  # All attributes are off                       #
@@ -586,6 +583,8 @@ c() {
     UndoClear # U u p k                                #
     Circ $@   #  `                         O|O u a c k o 
 }
+sgr() { SetSGR ${@}; } #_`.*_`.*_`.*_`.*_`.*_`.*_`.*_`.*
+
                  # # # # # # # # # # # # # # # # # # #
 SetText()       # # # # # # # # # # # # # # # # # # # 
 {              # # # # # # # # # # # # # # # # # # # 
@@ -765,7 +764,6 @@ DumpColour() ###########################################
     Display         # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     ((Cursor[1]--)) # .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,
     BgrClr=$Black   # !!!!!!!!!!!!!!!!!!?!!!!!!!!!!!!!!!
-    #    SetSGR $Bold    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     SGR=$Bold
     ################@###################################
     for ((j = 0; j < ${#clr[@]}; j++)); do #############
@@ -862,7 +860,7 @@ Gradient()
     local bgr # background colour  _     _     _     _
     local fgr # foreground colour  _     _     _     _
     read -a bgr <<< $BgrClr # k Ck Ok    _     _     _
-    read -a fgr <<< $FgrClr # CK : Dart Vader  _     _
+    read -a fgr <<< $FgrClr # CK .: Dart Vader _     _
     local i #    _     _     _     _     _     _     _
     local clr=() #     _     _     _     _     _     _
     local r1 #   _     _     _     _     _     _     _
@@ -1124,44 +1122,53 @@ DrawingMode()
     local maxCx=$((Cols - 2))
     local minCy=2
     local maxCy=$((Lines - 1))
+    local TabBorder=($((RulerW - TABW - 2)) 21)
     for ((; ;)); do
 	read -n 1 ch ################## probe for an Esc
 	[ -z "$ch" ] && continue
-	if [ "$ch" = ${Esc} ]; then
-	    read -n 5 ch
-	    Cb=$(($(atoi "${ch:2:1}") - off))
-	    Cx=$(($(atoi "${ch:3:1}") - off))
-	    Cy=$(($(atoi "${ch:4:1}") - off))
-	    ############################################
-	    ((Cx < 0)) && ((Cx += 255))
-	    ((Cy < 0)) && ((Cy += 255))
-	    ############################################
-	    ((Cx < minCx)) && ((Cx = minCx))
-	    ((Cx > maxCx)) && ((Cx = maxCx))
-	    ((Cy < minCy)) && ((Cy = minCy))
-	    ((Cy > maxCy)) && ((Cy = maxCy))
-	    Cursor=($Cx $Cy)
-	    Cursor2Pixel
-	    ############################################
-	    if ((Cx > Cols-22)); then
-		if ((Cy < 12)); then
-		    GetPixel ${Pixel[@]} # get color
+	case ${ch} in
+	    ${Esc})
+		read -n 5 ch
+		Cb=$(($(atoi "${ch:2:1}") - off))
+		Cx=$(($(atoi "${ch:3:1}") - off))
+		Cy=$(($(atoi "${ch:4:1}") - off))
+		########################################
+		((Cx < 0)) && ((Cx += 255))
+		((Cy < 0)) && ((Cy += 255))
+		########################################
+		((Cx < minCx)) && ((Cx = minCx))
+		((Cx > maxCx)) && ((Cx = maxCx))
+		((Cy < minCy)) && ((Cy = minCy))
+		((Cy > maxCy)) && ((Cy = maxCy))
+		Cursor=($Cx $Cy)
+		Cursor2Pixel
+		#################################### Tab
+		if ((Pixel[0] > TabBorder[0])) && \
+		       ((Cy < TabBorder[1])); then
+		    GetBgr ${Pixel[@]} # get colour
+		    continue
+		fi #####################################
+		if ((Cx == maxCx)) && \
+		       ((Cy == maxCy)); then
+		    Tracking_Off
+		    prompt
+		    CommandMode
+		fi #####################################
+		if ((Cb == 0)); then
+		    A=(${Pixel[@]})
+		elif ((Cb == 3)); then
+		    line ${A[@]} ${Pixel[@]}
+		else
 		    continue
 		fi
-	    fi #########################################
-	    if ((Cx == maxCx)) && ((Cy == maxCy)); then
-		Tracking_Off
-		prompt
-		CommandMode
-	    fi #########################################
-	    if ((Cb == 0)); then
-		A=(${Pixel[@]})
-	    elif ((Cb == 3)); then
-		line ${A[@]} ${Pixel[@]}
-	    else
-		continue
-	    fi
-	fi	
+		;;
+	    'u')
+		Undo
+		;;
+	    'x')
+		Switch
+		;;
+	esac
     done
 }
 ############################## !!! test zone !¿! #######
@@ -1172,8 +1179,5 @@ quit()
     Tracking_Off
 }
 trap quit EXIT
-#baz
+baz
 ########################################################
-Init
-Tracking_On
-DrawingMode

@@ -1,9 +1,17 @@
+ifndef TARGET
 TARGET = HSV2RGB
+endif
+########################################################
 CC = gcc
 CFLAGS = -ggdb
-LDFLAGS = -ggdb
+LDFLAGS = $(CFLAGS)
+########################################################
 $(TARGET): $(TARGET).o
 	$(CC) $(LDFLAGS) -o $@ $^ -lm
+$(TARGET).o: $(TARGET).c
+	$(CC) $(CFLAGS) -o $@ -c $<
+########################################################
 .PHONY: clean
 clean:
 	$(RM) $(TARGET) $(TARGET).o
+########################################################

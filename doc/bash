@@ -364,7 +364,7 @@ SHELL GRAMMAR
               the  return  status is 1.  This is exactly equivalent to let
               "expression".
 
-       [[ expression ]] //...	
+       [[ expression ]]
               Return a status of 0 or 1 depending on the evaluation of the
               conditional expression expression.  Expressions are composed
               of the primaries described below under  CONDITIONAL  EXPRES‐
@@ -694,7 +694,7 @@ PARAMETERS
        these builtins may appear in a command after one or more  instances
        of  the command builtin and retain these assignment statement prop‐
        erties.
-
+       
        In the context where an assignment statement is assigning  a  value
        to  a shell variable or array index, the += operator can be used to
        append to or add to the variable's previous value.   This  includes
@@ -1428,7 +1428,7 @@ PARAMETERS
        ber.   To  explicitly declare an indexed array, use declare -a name
        (see SHELL BUILTIN COMMANDS below).  declare -a name[subscript]  is
        also accepted; the subscript is ignored.
-
+       //..,	   
        Associative arrays are created using declare -A name.
 
        Attributes may be specified for an array variable using the declare
