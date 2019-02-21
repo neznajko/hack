@@ -1428,7 +1428,7 @@ PARAMETERS
        ber.   To  explicitly declare an indexed array, use declare -a name
        (see SHELL BUILTIN COMMANDS below).  declare -a name[subscript]  is
        also accepted; the subscript is ignored.
-       //..,	   
+
        Associative arrays are created using declare -A name.
 
        Attributes may be specified for an array variable using the declare
@@ -1444,7 +1444,7 @@ PARAMETERS
        assigned to by the statement plus one.  Indexing starts at zero.
 
        When assigning to an associative array, the subscript is required.
-
+       //..,	   
        This  syntax  is  also accepted by the declare builtin.  Individual
        array elements may be assigned to using  the  name[subscript]=value
        syntax  introduced  above.   When assigning to an indexed array, if

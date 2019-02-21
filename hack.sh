@@ -673,8 +673,7 @@ GetFgr()
     GetPixelColour $1 $2 1 #
 }
 Hue()
-# $1 - angle in degrees:) the function loads rgb from a
-# file ./rgb/Hue$1.dat and displays them [..][,,]
+# $1 - angle in degrees:)
 {
     local n=10 ##### levels of brightness and saturation
     local line # input line .`.`.`.`.`.`.`.`.`.`.`.`.`.`
@@ -685,10 +684,7 @@ Hue()
     #bug #245 store Text, set it to $Void and restore it
     Backup # tttttttttttt0tttttttttttttttttttttttttttttt
     Text=$Void # ~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~
-    while read line; do    #  -------------------------
-	rgb[j]=$line       #   --- --- --- --- --- ---
-	((j++))            #    -   -   -   -   -   -
-    done < rgb/Hue$1.dat ###############################
+    IFS=' ' read -a rgb <<< "$(rgb/HSV2RGB ${1})"
     for ((i = 0; i < n; i++)); do # brightness ~!@#$%^&*
 	for ((j = 0; j < n; j++)); do # saturation ~@#$%
 	    k=$((i*n + j)) # rgb index ~!@#$%^&*()_+`-=;'\

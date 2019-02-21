@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 		s = (j + .5)*10;
 		v = (i + .5)*10;
 		__HSV2RGB(&r, &g, &b, h, s, v);
-		printf("%g;%g;%g\n", r, g, b);
+		printf("%g;%g;%g ", r, g, b);
 	    }
 	}
     }
