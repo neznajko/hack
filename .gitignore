@@ -1,4 +1,5 @@
 gimp/dumpix
+gimp/dumpix.o
 rgb/*.o
 rgb/RGB2HSV
 rgb/HSV2RGB
