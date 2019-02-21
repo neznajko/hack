@@ -1,0 +1,4 @@
+gimp/dumpix
+rgb/*.o
+rgb/RGB2HSV
+rgb/HSV2RGB
