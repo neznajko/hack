@@ -206,9 +206,11 @@ Backup()           #     .
     Push "$FgrClr" #                             e    
     Push "$Text"   #       .           
     Push "$SGR"    # ______ __________.___________y  ___
-}                  #
+    Push "${Flag}" # _______ ________ __________________
+}                  # ______ ________ ___________________
 ReEstablish() #^###$####################################
 {              # -Your-poem-goes-here:------------------
+    Pop Flag   # ---------------------------------------
     Pop SGR    # ---------------------------------------
     Pop Text   # ---------------------------------------
     Pop FgrClr # ---------------------------------------
@@ -294,7 +296,7 @@ Init()
 }
 zebug()
 {
-    printf "%s\n" "$*" >> hack.log #### tail -f hack.log
+    printf "%s\n" "$*" >> ${LogFile} ## tail -f hack.log
 }
 Up="[A"
 Down="[B"
@@ -373,6 +375,7 @@ CommandMode()
 	case $ch in
 	    $Enter)
 		getCmdStr str
+		printf "%s\n" "${str}" >> ${LogFile}
 		eval "$str" 2> /dev/null
 		h=${#History[@]} ### append last command
 		History[h]="$str"
@@ -444,6 +447,7 @@ baz()
     CommandMode ########### Mike Posner - Cooler Than Me
 }
 FileName="hack.pix" ####################### default file
+LogFile="hack.log" #####################################
 Save()
 {   # if no argument use current FileName >>>>>>>>>>>>>>
     [ -z $1 ] || FileName=$1
@@ -788,10 +792,11 @@ DumpGradient()
 {
     local x=$(( ORIG[0] + 3 ))
     local y=$(( ORIG[1] + TABH - 2))
-    Push ${Flag}
+    Backup
+    Text="${Void}"
     Flag=0
     Gradient $x $y $((x + 5)) $y
-    Pop Flag
+    ReEstablish
 }
 Tab()
 # Display colour information Tab ~ ! @ # $ % ^ & * ( ) _ + = 
@@ -862,8 +867,6 @@ Gradient()
     local r1 #   _     _     _     _     _     _     _
     local r2 #   _     _     _     _     _     _     _
     Push "$BgrClr" #   _     _     _     _     _     _
-    Push "$Text" #     _     _     _     _     _     _
-    Text=$Void # _     _     _     _     _     _     _
     for ((i = 0; i < dim; i++)); do #    _     _     _
 	e[i]=$(( (fgr[i] - bgr[i])/(n - 1) )) #_     _
     done # _     _     _     _     _     _     _     _
@@ -881,7 +884,6 @@ Gradient()
 	fi #     _     _     _     _     _     _     _
 	Box ${r1[@]} ${r2[@]} Draw #     _     _     _
     done # _     _     _     _     _     _     _     _
-    Pop Text #   _     _     _     _     _     _     _
     Pop BgrClr # _     _     _     _     _     _     _
 }
 Undo()
@@ -1173,6 +1175,7 @@ quit()
     stty $Setting # restore terminal settings *=*=*=*=*=
     printf "${CSI}8;${Geom[1]};${Geom[0]}t" # reset size
     Tracking_Off
+    > ${LogFile}
 }
 trap quit EXIT
 baz
