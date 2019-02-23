@@ -976,6 +976,7 @@ PlayingMode()
 {
     local ch ################################# character
     local Space=' ' ########################## space bar
+    local Tab=$'\t' ################################ Tab
     local poz=(2 $((2*SizeX - 1))) ######## Hue position
     local po2= ########################### backup buffer
     while IFS= read -s -n 1 ch; do ################## oo
@@ -985,17 +986,21 @@ PlayingMode()
 	    GetCoorz ############################## wow!
 	    po2=(${Cursor[1]} ${Cursor[0]})
 	    case $ch in
-		$Space) #-------------------draw-a-pixel
+		${Space}) #-----------------draw-a-pixel
 		    UndoClear
 		    Draw ${Pixel[@]} ##### what is this?
 		    ;;
-		'g') #==============get=pixel=color=etc.
-		    GetPixel ${Pixel[@]} # get pixel data
-		    printf "${CSI}${po2[0]};${po2[1]}H"
-		    ;;
-		$'\t') #__________switch_pixel_positions
+		${Tab}) #_________switch_pixel_positions
 		    printf "${CSI}${poz[0]};${poz[1]}H"
 		    poz=(${Cursor[1]} ${Cursor[0]})
+		    ;;
+		'e')
+		    UndoClear
+		    Eraser ${Pixel[@]}
+		    ;;
+		'g') #==============get=pixel=color=etc.
+		    GetBgr ${Pixel[@]} ## get bgr colour
+		    printf "${CSI}${po2[0]};${po2[1]}H"
 		    ;;
 		'u')
 		    Undo
