@@ -201,3 +201,6 @@ instructions type `Load pix/pmode.pix`
 + line **_x<sub>A</sub> y<sub>A</sub> x<sub>B</sub> y<sub>B</sub>_**
 
    Draws a line from point A to point B.
+
+To exit the program and get back to the shell press _Ctrl-C_.
+
