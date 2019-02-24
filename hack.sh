@@ -687,6 +687,7 @@ Hue()
     local j=0 # rgb array index ************************
     #bug #245 store Text, set it to $Void and restore it
     Backup # tttttttttttt0tttttttttttttttttttttttttttttt
+    Flag=0 #
     Text=$Void # ~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~^~
     IFS=' ' read -a rgb <<< "$(rgb/HSV2RGB ${1})"
     for ((i = 0; i < n; i++)); do # brightness ~!@#$%^&*
