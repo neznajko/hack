@@ -1,7 +1,7 @@
 ![logo](pix/hack.png)  
 **H**ighly unportable b**A**sh s**C**ript for drawing in terminal O**K**?
 ## Instollation
-Just type *make*, this will compile the programs needed by ***hack.sh***. One importante thing is that
+Just type *make*, this will compile the programs needed by ***hack.sh***. One important thing is that
 *git* for **Windows** has automatic settings that add *carriage return* to every new line, if you try to
 run the script from *Cygwin* for example, in that case either change git settings or download instead of
 cloning the repository.  
@@ -17,7 +17,7 @@ run on Konsole and xterm, but there are some issues with _mouse tracking_ and co
 out.
 ## hack.sh
 The name is misleading, it obviously has nothing to do with hacking, but all those 
-**XTerm Control Sequences** were refered by one site, in the beginning when I started the project,
+**XTerm Control Sequences** were referred by one site, in the beginning when I started the project,
 as hacking or something like this, so I saved them in a file called _hack.sh_ and later decided to keep
 that name coz it's cool:). There are three modes of operation:
 1. Command Mode
@@ -37,11 +37,11 @@ Instead use `zebug` function to view some internal values, for example before st
 another terminal and type `tail -f hack.log` than from _Command Mode_ type `zebug ${BgrClr}` this will
 give the current value of background colour. _Command Mode_ is the working horse mode of _hack.sh_,
 you can draw anything just by typing commands. There are no public and private methods here but to be
-used properly some of the commands should be invoced by their wrapper (not rapper, thanks God) functions
+used properly some of the commands should be invoked by their wrapper (not rapper, thanks God) functions
 or their shortcuts. For example to draw a pixel, one has to specify 4 things background and foreground
 colours, text and SGR, the last one is a parameter that will make the text bold or blinking etc.
 It is possible to set up _BgrClr_ directly by typing `BgrClr="r;g;b"`, where _r_, _g_, and _b_ range
-from _0_ to _255_, but that won't update the Colour Tab. Similary coz of the undo functionality one
+from _0_ to _255_, but that won't update the Colour Tab. Similarly coz of the undo functionality one
 has to use the shortcut `d` rather then `Draw`. Zo now we are going to dance, I'll make a move and you'll
 repeat after me are you ready? Let's go!
 1. Start _hack.sh_, now type
@@ -107,3 +107,97 @@ function to draw a line between these points. Clicking in the _Tab_ area will pi
 pressing _u_ and _x_ will _Undo_ and _Switch_ respectively.
 
 ## Functions
++ zebug **_str_**
+
+   Used for debugging purposes, it will redirect **_str_** to _hack.log_. For example 
+`zebug "$(ls -l)"` will dump _hack_ directory contents at _hack.log_.
++ Save/Load **_FileName_**
+
+   Save/Load picture to **_FileName_** (default is _hack.pix_)
+
+Now follows a list of shortcut or wrapper (thanks God) or both functions.
+
++ sb/sf (_SetBgrHSV/SetFgrHSV_) **_Hue Saturation Value_**
+
+   Set background/foreground colour by specifying its _HSV_ coorz. Make no mistake here coz it
+will fill your canvas with numbers:).
+
++ x (_Switch_)
+
+   Or Svitch:), swaps foreground and background colours.
+
++ gp (_GetPixel_) **_x y_**
+
+   Get all pixel attributes at **_x y_**, as noted before, don't use it over empty pixels
+and in the _Tab_ area.
+
++ gb/gf (_GetBgr/GetFgr_) **_x y_**
+
+   Get background and foreground pixel attributes (use _gb_ at _Hue Tab_).
+
++ d (_Draw_) **_x y_**
+
+   Here we go again. Draw a pixel at **_x y_**.
+
++ t (_SetText_) **_Text_**
+
+   This is actually the advantage of _hack.sh_ the possibility of making textures with text:). It is
+possible to draw Unicode chars as well, but you have to name them in the script like this `evening='夕'`.
+Note that these are 16-bit wide characters and will get 2 cursors, that is one pixel, zo type
+`t "${evening}"`. Otherwise, with 8-bit characters, you have to set 2 characters, for example `t '_*'`.
+
++ gr (_Gradient_) **_x<sub>0</sub> y<sub>0</sub> x<sub>1</sub> y<sub>1</sub> [v]_**
+   
+   Background to foreground gradient, **_(x<sub>0</sub>, y<sub>0</sub>)_** is the upper left corner,
+**_(x<sub>1</sub>, y<sub>1</sub>)_** is the
+lower right corner, **_v_** is vertical direction flag.
+
++ e (_Eraser_) **_x y_**
+   
+   Erase a pixel at position **_(x, y)_**.
+
++ b (_Box_) **_x<sub>0</sub> y<sub>0</sub> x<sub>1</sub> y<sub>1</sub> func_**
+
+   **_func_** is either _Draw_ or _Eraser_, and the region is the same as in _gr_. Depending on the
+value of **_func_** _b_ will either draw or erase the region.
+   
++ c (_Circ_) **_x<sub>0</sub> y<sub>0</sub> x<sub>1</sub> y<sub>1</sub>_**
+
+   Region is the same as in _gr_ and _b_ and the function will draw an ellipse bounded in it. The 
+difference is that here coorz can be negative.
+
++ sgr (_SetSGR_) **...**
+
+   Here we have *va_args*:), for example `sgr ${Bold} ${Blnk}` will display bold and blinking text
+(after calling _d_). For a list of additional parameters look at the beginning of the script.
+
+This is the end of shortcut and thanks God functions.
+
++ UndoBgr/UndoFgr
+
+   Undo background/foreground colors.
+
++ SetBgrRGB/SetFgrRGB **_r g b_**
+
+   Set bgr/fgr colors by _r g b_ values [0, 255]
+
++ Hue **_angle_**
+
+  This will update the _Hue Tab_, **_angle_** is in the range _[0, 360)_
+
++ Undo
+
+   One level undo (same as Ctrl-Z in Photoshop).
+
++ gimp **_x y_**
+
+   It is possible to import an external image into the canvas at position **_(x, y)_**, but it has to be
+resized and exported as a C header file in _gimp_. To view an example type `gimp 1 1`, for further
+instructions type `Load pix/pmode.pix`
+
+![right](pix/pmode_right.png)
+![left](pix/pmode_left.png)
+
++ line **_x<sub>A</sub> y<sub>A</sub> x<sub>B</sub> y<sub>B</sub>_**
+
+   Draws a line from point A to point B.
