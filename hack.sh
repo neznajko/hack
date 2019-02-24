@@ -998,8 +998,16 @@ PlayingMode()
 		    UndoClear
 		    Eraser ${Pixel[@]}
 		    ;;
-		'g') #==============get=pixel=color=etc.
-		    GetBgr ${Pixel[@]} ## get bgr colour
+		'f') #==============get=foreground=color
+		    GetFgr ${Pixel[@]}
+		    printf "${CSI}${po2[0]};${po2[1]}H"
+		    ;;
+		'g') #==============get=background=color
+		    GetBgr ${Pixel[@]}
+		    printf "${CSI}${po2[0]};${po2[1]}H"
+		    ;;
+		'p') #==============get=pixel=color=etc.
+		    GetPixel ${Pixel[@]}
 		    printf "${CSI}${po2[0]};${po2[1]}H"
 		    ;;
 		'u')
