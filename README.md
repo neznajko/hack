@@ -43,7 +43,8 @@ colours, text and SGR, the last one is a parameter that will make the text bold 
 It is possible to set up _BgrClr_ directly by typing `BgrClr="r;g;b"`, where _r_, _g_, and _b_ range
 from _0_ to _255_, but that won't update the Colour Tab. Similarly coz of the undo functionality one
 has to use the shortcut `d` rather then `Draw`. Zo now we are going to dance, I'll make a move and you'll
-repeat after me are you ready? Let's go!
+repeat after me. Before we start make sure your terminal is not in full screen and its minimum size is
+_89 x 28_. Are you ready? Let's go!
 1. Start _hack.sh_, now type
 2. `sb 0 100 60` - This will set bgr with hue, saturation and value
 3. `sf 260 90 30` - Sef fgr
